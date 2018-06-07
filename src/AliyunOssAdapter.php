@@ -7,16 +7,14 @@
 
 namespace XuTL\Flysystem\AliyunOss;
 
-
 use Illuminate\Contracts\Filesystem\Filesystem;
 use League\Flysystem\Adapter\AbstractAdapter;
-use League\Flysystem\Adapter\Polyfill\NotSupportingVisibilityTrait;
 use League\Flysystem\Adapter\Polyfill\StreamedTrait;
 use League\Flysystem\Config;
-
 use League\Flysystem\Util;
 use OSS\Core\OssException;
 use OSS\OssClient;
+use RuntimeException;
 
 /**
  * 阿里云适配器
@@ -25,7 +23,7 @@ use OSS\OssClient;
 class AliyunOssAdapter extends AbstractAdapter
 {
 
-    use StreamedTrait, NotSupportingVisibilityTrait;
+    use StreamedTrait;
 
     /**
      * Aliyun Oss Client.
@@ -161,20 +159,6 @@ class AliyunOssAdapter extends AbstractAdapter
     }
 
     /**
-     * Write a new file using a stream.
-     *
-     * @param string $path
-     * @param resource $resource
-     * @param Config $config Config object
-     *
-     * @return array|false false on failure file meta data on success
-     */
-    public function writeStream($path, $resource, Config $config)
-    {
-
-    }
-
-    /**
      * Update a file.
      *
      * @param string $path
@@ -186,20 +170,6 @@ class AliyunOssAdapter extends AbstractAdapter
     public function update($path, $contents, Config $config)
     {
         return $this->write($path, $contents, $config);
-    }
-
-    /**
-     * Update a file using a stream.
-     *
-     * @param string $path
-     * @param resource $resource
-     * @param Config $config Config object
-     *
-     * @return array|false false on failure file meta data on success
-     */
-    public function updateStream($path, $resource, Config $config)
-    {
-        // TODO: Implement updateStream() method.
     }
 
     /**
@@ -223,7 +193,6 @@ class AliyunOssAdapter extends AbstractAdapter
      *
      * @param string $path
      * @param string $newpath
-     *
      * @return bool
      */
     public function copy($path, $newpath)
@@ -260,7 +229,6 @@ class AliyunOssAdapter extends AbstractAdapter
      * Delete a directory.
      *
      * @param string $dirname
-     *
      * @return bool
      */
     public function deleteDir($dirname)
@@ -287,7 +255,6 @@ class AliyunOssAdapter extends AbstractAdapter
      *
      * @param string $dirname directory name
      * @param Config $config
-     *
      * @return array|false
      */
     public function createDir($dirname, Config $config)
@@ -307,12 +274,21 @@ class AliyunOssAdapter extends AbstractAdapter
      *
      * @param string $path
      * @param string $visibility
-     *
      * @return array|false file meta data
      */
     public function setVisibility($path, $visibility)
     {
-        // TODO: Implement setVisibility() method.
+        $location = $this->applyPathPrefix($path);
+        try {
+            $this->client->putObjectAcl(
+                $this->bucket,
+                $location,
+                ($visibility == 'public') ? 'public-read' : 'private'
+            );
+        } catch (OssException $e) {
+            return false;
+        }
+        return $this->getMetadata($path);
     }
 
     /**
@@ -337,7 +313,6 @@ class AliyunOssAdapter extends AbstractAdapter
      * Read a file.
      *
      * @param string $path
-     *
      * @return array|false
      */
     public function read($path)
@@ -352,19 +327,36 @@ class AliyunOssAdapter extends AbstractAdapter
     }
 
     /**
-     * Read a file as a stream.
-     *
+     * 获取对象访问Url
      * @param string $path
-     *
-     * @return array|false
+     * @return string
+     * @throws \OSS\Core\OssException
      */
-    public function readStream($path)
+    public function getObjectUrl($path)
     {
         $location = $this->applyPathPrefix($path);
-        $resource = ($this->client->isUseSSL() ? 'https://' : 'http://') . $this->bucket . '.' . $this->client->getEndpoint() . '/' . $location;
-        return [
-            'stream' => $resource = fopen($resource, 'r')
-        ];
+        if (($this->client->getObjectAcl($this->bucket, $location)) == 'private') {
+            throw new RuntimeException('This object does not support retrieving URLs.');
+        }
+        //SDK未提供获取 hostname的公开方法，这里变相获取
+        $temporaryUrl = $this->getTemporaryUrl($path,60,[]);
+        $urls = parse_url($temporaryUrl);
+        return $urls['scheme'] .'://'. $urls['host'] . $urls['path'];
+    }
+
+    /**
+     * 获取文件临时访问路径
+     * @param $path
+     * @param $expiration
+     * @param $options
+     * @return string
+     * @throws \OSS\Core\OssException
+     */
+    public function getTemporaryUrl($path, $expiration, $options)
+    {
+        $location = $this->applyPathPrefix($path);
+        $temporaryUrl = $this->client->signUrl($this->bucket, $location, $expiration, OssClient::OSS_HTTP_GET, $options);
+        return $temporaryUrl;
     }
 
     /**
@@ -372,8 +364,8 @@ class AliyunOssAdapter extends AbstractAdapter
      *
      * @param string $directory
      * @param bool $recursive
-     *
      * @return array
+     * @throws OssException
      */
     public function listContents($directory = '', $recursive = false)
     {
@@ -382,11 +374,11 @@ class AliyunOssAdapter extends AbstractAdapter
         $bucket = $this->bucket;
         $delimiter = '/';
         $nextMarker = '';
-        $maxkeys = 1000;
+        $maxKeys = 1000;
         $options = [
             'delimiter' => $delimiter,
             'prefix' => $directory,
-            'max-keys' => $maxkeys,
+            'max-keys' => $maxKeys,
             'marker' => $nextMarker,
         ];
         $listObjectInfo = $this->client->listObjects($bucket, $options);
@@ -428,7 +420,6 @@ class AliyunOssAdapter extends AbstractAdapter
      * Get all the meta data of a file or directory.
      *
      * @param string $path
-     *
      * @return array|false
      */
     public function getMetadata($path)
@@ -453,7 +444,6 @@ class AliyunOssAdapter extends AbstractAdapter
      * Get the size of a file.
      *
      * @param string $path
-     *
      * @return array|false
      */
     public function getSize($path)
@@ -465,7 +455,6 @@ class AliyunOssAdapter extends AbstractAdapter
      * Get the mimetype of a file.
      *
      * @param string $path
-     *
      * @return array|false
      */
     public function getMimetype($path)
@@ -477,7 +466,6 @@ class AliyunOssAdapter extends AbstractAdapter
      * Get the last modified time of a file as a timestamp.
      *
      * @param string $path
-     *
      * @return array|false
      */
     public function getTimestamp($path)
@@ -489,7 +477,6 @@ class AliyunOssAdapter extends AbstractAdapter
      * Get the visibility of a file.
      *
      * @param string $path
-     *
      * @return array|false
      */
     public function getVisibility($path)
@@ -503,21 +490,6 @@ class AliyunOssAdapter extends AbstractAdapter
         return [
             'visibility' => $response,
         ];
-    }
-
-    /**
-     * 获取文件临时访问路径
-     * @param $path
-     * @param $expiration
-     * @param $options
-     * @return string
-     * @throws \OSS\Core\OssException
-     */
-    public function getTemporaryUrl($path, $expiration, $options)
-    {
-        $location = $this->applyPathPrefix($path);
-        $temporaryUrl = $this->client->signUrl($this->bucket, $location, $expiration, OssClient::OSS_HTTP_GET, $options);
-        return $temporaryUrl;
     }
 
     /**
