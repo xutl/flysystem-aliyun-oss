@@ -12,5 +12,16 @@
     "psr-4": {
       "XuTL\\Flysystem\\AliyunOss\\": "src"
     }
-  }
+  },
+  "extra": {
+    "branch-alias": {
+      "dev-master": "5.0-dev"
+    },
+    "laravel": {
+      "providers": [
+        "XuTL\\Flysystem\\AliyunOss\\AliyunOssServiceProvider"
+      ]
+    }
+  },
+  "prefer-stable": true
 }

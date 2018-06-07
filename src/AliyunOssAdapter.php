@@ -38,7 +38,7 @@ class AliyunOssAdapter extends ServiceProvider
         });
     }
 
-    
+
     /**
      * Register bindings in the container.
      *
