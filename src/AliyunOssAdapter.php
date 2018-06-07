@@ -211,7 +211,6 @@ class AliyunOssAdapter extends AbstractAdapter
      * Delete a file.
      *
      * @param string $path
-     *
      * @return bool
      */
     public function delete($path)
@@ -233,16 +232,16 @@ class AliyunOssAdapter extends AbstractAdapter
      */
     public function deleteDir($dirname)
     {
-        $list = $this->listContents($dirname, true);
-        $objects = [];
-        foreach ($list as $val) {
-            if ($val['type'] === 'file') {
-                $objects[] = $this->applyPathPrefix($val['path']);
-            } else {
-                $objects[] = $this->applyPathPrefix($val['path']) . '/';
-            }
-        }
         try {
+            $list = $this->listContents($dirname, true);
+            $objects = [];
+            foreach ($list as $val) {
+                if ($val['type'] === 'file') {
+                    $objects[] = $this->applyPathPrefix($val['path']);
+                } else {
+                    $objects[] = $this->applyPathPrefix($val['path']) . '/';
+                }
+            }
             $this->client->deleteObjects($this->bucket, $objects);
         } catch (OssException $e) {
             return false;
@@ -283,7 +282,7 @@ class AliyunOssAdapter extends AbstractAdapter
             $this->client->putObjectAcl(
                 $this->bucket,
                 $location,
-                ($visibility == 'public') ? 'public-read' : 'private'
+                ($visibility == Filesystem::VISIBILITY_PUBLIC ) ? 'public-read' : 'private'
             );
         } catch (OssException $e) {
             return false;
@@ -295,7 +294,6 @@ class AliyunOssAdapter extends AbstractAdapter
      * Check whether a file exists.
      *
      * @param string $path
-     *
      * @return array|bool|null
      */
     public function has($path)
@@ -332,7 +330,7 @@ class AliyunOssAdapter extends AbstractAdapter
      * @return string
      * @throws \OSS\Core\OssException
      */
-    public function getObjectUrl($path)
+    public function getUrl($path)
     {
         $location = $this->applyPathPrefix($path);
         if (($this->client->getObjectAcl($this->bucket, $location)) == 'private') {
