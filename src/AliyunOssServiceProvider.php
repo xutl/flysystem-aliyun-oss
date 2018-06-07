@@ -34,6 +34,9 @@ class AliyunOssServiceProvider extends ServiceProvider
                 $config['securityToken'] ?? null,
                 $config['proxy'] ?? null
             );
+            $client->setTimeout($config['timeout'] ?? 3600);
+            $client->setConnectTimeout($config['connectTimeout'] ?? 10);
+            $client->setUseSSL($config['useSSL'] ?? false);
             $adapter = new AliyunOssAdapter(
                 $client,
                 $config['bucket'],
