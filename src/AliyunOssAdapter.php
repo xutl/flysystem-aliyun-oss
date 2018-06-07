@@ -8,10 +8,10 @@
 namespace XuTL\Flysystem\AliyunOss;
 
 use Storage;
-use Illuminate\Support\ServiceProvider;
+use League\Flysystem\Adapter\AbstractAdapter;
 
 
-class AliyunOssAdapter extends ServiceProvider
+class AliyunOssAdapter extends AbstractAdapter
 {
     /**
      * Perform post-registration booting of services.

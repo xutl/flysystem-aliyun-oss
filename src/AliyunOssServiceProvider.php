@@ -6,8 +6,8 @@
  */
 
 namespace XuTL\Flysystem\AliyunOss;
-
-class AliyunOssServiceProvider
+use Illuminate\Support\ServiceProvider;
+class AliyunOssServiceProvider  extends ServiceProvider
 {
 
 }
