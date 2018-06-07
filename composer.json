@@ -1,0 +1,16 @@
+{
+  "name": "xutl/flysystem-aliyun-oss",
+  "description": "This is a Flysystem adapter for the Aliyun OSS.",
+  "keywords": [ "flysystem", "aliyun", "oss" ],
+  "type": "library",
+  "license": "MIT",
+  "require": {
+    "league/flysystem": "^1.0.8",
+    "aliyuncs/oss-sdk-php": "~2.3"
+  },
+  "autoload": {
+    "psr-4": {
+      "XuTL\\Flysystem\\AliyunOss\\": "src"
+    }
+  }
+}
