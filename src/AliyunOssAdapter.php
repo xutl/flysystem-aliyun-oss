@@ -321,7 +321,8 @@ class AliyunOssAdapter extends AbstractAdapter
     public function getTemporaryUrl($path, $expiration, $options)
     {
         $location = $this->applyPathPrefix($path);
-        $temporaryUrl = $this->client->signUrl($this->bucket, $location, $expiration, OssClient::OSS_HTTP_GET, $options);
+        $timeout = $expiration->getTimestamp() - time();
+        $temporaryUrl = $this->client->signUrl($this->bucket, $location, $timeout, OssClient::OSS_HTTP_GET, $options);
         return $temporaryUrl;
     }
 
