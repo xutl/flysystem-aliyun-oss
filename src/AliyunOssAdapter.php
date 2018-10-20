@@ -305,7 +305,7 @@ class AliyunOssAdapter extends AbstractAdapter
             throw new RuntimeException('This object does not support retrieving URLs.');
         }
         //SDK未提供获取 hostname的公开方法，这里变相获取
-        $temporaryUrl = $this->getTemporaryUrl($path,60,[]);
+        $temporaryUrl = $this->getTemporaryUrl($path, now()->addMinutes(60), []);
         $urls = parse_url($temporaryUrl);
         return $urls['scheme'] .'://'. $urls['host'] . $urls['path'];
     }
